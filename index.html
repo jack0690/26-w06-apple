@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff8ef">
+  <title>사과게임 — 숫자를 모아 10을 만들어요</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #342d29;
+      --muted: #8c7d72;
+      --red: #ee5a4f;
+      --red-dark: #d9433c;
+      --cream: #fff8ef;
+      --line: #f0e5d9;
+      --green: #547a50;
+      font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 12% 9%, #ffe9d7 0, transparent 26rem),
+        radial-gradient(ellipse at 92% 90%, #f8e9d3 0, transparent 25rem),
+        var(--cream);
+    }
+
+    button { font: inherit; }
+
+    .page {
+      width: min(100% - 32px, 1040px);
+      margin: 0 auto;
+      padding: 28px 0 42px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 30px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 850;
+      letter-spacing: -.04em;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border-radius: 12px;
+      background: #ffe4dc;
+      font-size: 20px;
+    }
+
+    .top-note {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .game-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 316px;
+      gap: 26px;
+      align-items: start;
+    }
+
+    .board-card, .side-card {
+      border: 1px solid rgba(126, 91, 63, .09);
+      border-radius: 26px;
+      background: rgba(255, 255, 255, .87);
+      box-shadow: 0 18px 55px rgba(104, 71, 45, .09);
+    }
+
+    .board-card { padding: 26px; }
+
+    .intro {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--red);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 4vw, 34px);
+      font-weight: 900;
+      letter-spacing: -.07em;
+      line-height: 1.15;
+    }
+
+    .subtitle {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .target-badge {
+      flex: 0 0 auto;
+      padding: 9px 12px;
+      border: 1px solid #f7d8ca;
+      border-radius: 14px;
+      color: var(--red-dark);
+      background: #fff4ed;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .board-wrap {
+      position: relative;
+      padding: clamp(8px, 2vw, 14px);
+      border-radius: 21px;
+      background: #f8f2e9;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: clamp(4px, 1vw, 8px);
+      aspect-ratio: 1;
+    }
+
+    .cell {
+      display: grid;
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+      place-items: center;
+      border: 1px solid #f0e2d5;
+      border-radius: clamp(8px, 1.5vw, 15px);
+      color: #493c34;
+      background: linear-gradient(145deg, #fffdfa, #fff7ed);
+      box-shadow: 0 2px 0 rgba(132, 89, 56, .07);
+      font-size: clamp(19px, 3.8vw, 31px);
+      font-weight: 900;
+      cursor: crosshair;
+      transition: transform .12s, background .12s, box-shadow .12s, opacity .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cell:not(.empty):hover { transform: translateY(-2px); }
+
+    .cell.selected {
+      z-index: 1;
+      border-color: #ef7770;
+      color: #fff;
+      background: linear-gradient(145deg, #f47e70, #e95049);
+      box-shadow: 0 4px 10px rgba(226, 77, 67, .24);
+      transform: scale(1.04);
+    }
+
+    .cell.empty {
+      border-color: transparent;
+      background: rgba(231, 220, 207, .38);
+      box-shadow: none;
+      cursor: default;
+    }
+
+    .board-wrap.locked .cell { cursor: default; }
+
+    .board-footer {
+      display: flex;
+      min-height: 38px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 3px 0;
+    }
+
+    .game-message {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .game-message.success { color: var(--green); }
+    .game-message.error { color: var(--red-dark); }
+
+    .selection-total {
+      flex: 0 0 auto;
+      color: #9c8b7b;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .side-card { padding: 23px; }
+
+    .side-heading {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .12em;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat {
+      min-width: 0;
+      padding: 15px 14px 13px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: #fffdf9;
+    }
+
+    .stat.timer {
+      grid-column: 1 / -1;
+      padding: 17px 17px 14px;
+      background: #fff5ef;
+      border-color: #f8e0d4;
+    }
+
+    .stat-label {
+      display: block;
+      margin-bottom: 8px;
+      color: #9b8a7b;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .stat-value {
+      display: block;
+      overflow: hidden;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      font-size: 25px;
+      font-weight: 900;
+      letter-spacing: -.05em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .timer .stat-value {
+      color: var(--red-dark);
+      font-size: 35px;
+      letter-spacing: -.04em;
+    }
+
+    .timer-bar {
+      height: 6px;
+      margin-top: 12px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #f3ded4;
+    }
+
+    .timer-fill {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #f8a36f, #ee5a4f);
+      transition: width .4s linear;
+    }
+
+    .start-button {
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px 18px;
+      border: 0;
+      border-radius: 15px;
+      color: #fff;
+      background: linear-gradient(135deg, #f37562, #e94d48);
+      box-shadow: 0 7px 16px rgba(222, 75, 64, .2);
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+    }
+
+    .start-button:hover {
+      box-shadow: 0 9px 20px rgba(222, 75, 64, .28);
+      transform: translateY(-1px);
+    }
+
+    .start-button:active { transform: translateY(1px); }
+    .start-button:focus-visible, .cell:focus-visible {
+      outline: 3px solid #f3a38f;
+      outline-offset: 2px;
+    }
+
+    .how-to {
+      margin-top: 21px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .how-to h2 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .how-to ol {
+      display: grid;
+      gap: 9px;
+      margin: 0;
+      padding: 0;
+      color: #796b60;
+      font-size: 11px;
+      line-height: 1.55;
+      list-style: none;
+    }
+
+    .how-to li {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 7px;
+      align-items: start;
+    }
+
+    .step {
+      display: grid;
+      width: 18px;
+      height: 18px;
+      place-items: center;
+      border-radius: 7px;
+      color: var(--red-dark);
+      background: #fff0e8;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .footer-note {
+      margin: 21px 0 0;
+      color: #a99989;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    @media (max-width: 760px) {
+      .page { width: min(100% - 24px, 520px); padding-top: 18px; }
+      .topbar { margin-bottom: 20px; }
+      .game-layout { grid-template-columns: 1fr; gap: 14px; }
+      .board-card { padding: clamp(14px, 4vw, 24px); border-radius: 21px; }
+      .side-card { padding: 18px; border-radius: 21px; }
+      .stats { grid-template-columns: 1fr 1fr 1fr; }
+      .stat.timer { grid-column: auto; }
+      .timer .stat-value { font-size: 27px; }
+      .stat { padding: 13px 11px; }
+      .stat-value { font-size: 21px; }
+      .start-button { margin-top: 13px; }
+      .how-to { margin-top: 17px; }
+    }
+
+    @media (max-width: 390px) {
+      .top-note { font-size: 10px; }
+      .intro { gap: 8px; }
+      .target-badge { padding: 8px; font-size: 10px; }
+      .stats { gap: 6px; }
+      .stat { padding: 11px 8px; }
+      .timer .stat-value { font-size: 23px; }
+      .stat-value { font-size: 18px; }
+      .stat-label { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="사과게임 홈">
+        <span class="brand-mark" aria-hidden="true">🍎</span>
+        <span>사과 한 입</span>
+      </a>
+      <span class="top-note">잠깐 쉬어가는 숫자 퍼즐</span>
+    </header>
+
+    <section class="game-layout" aria-label="사과게임">
+      <div class="board-card">
+        <div class="intro">
+          <div>
+            <p class="eyebrow">APPLE NUMBER PUZZLE</p>
+            <h1>숫자를 모아<br>10을 만들어봐!</h1>
+            <p class="subtitle">이웃한 사과를 드래그해 합이 10이 되면 사과를 획득해요.</p>
+          </div>
+          <span class="target-badge">🎯 합계 10</span>
+        </div>
+
+        <div class="board-wrap locked" id="boardWrap">
+          <div class="board" id="board" role="grid" aria-label="8 곱하기 8 숫자 사과 격자"></div>
+        </div>
+        <div class="board-footer">
+          <p class="game-message" id="message" aria-live="polite">게임 시작을 눌러 사과를 모아보세요!</p>
+          <span class="selection-total" id="selectionTotal" aria-live="polite">합계 0</span>
+        </div>
+      </div>
+
+      <aside class="side-card" aria-label="게임 정보">
+        <p class="side-heading">오늘의 사과 수확</p>
+        <div class="stats">
+          <div class="stat timer">
+            <span class="stat-label">남은 시간</span>
+            <span class="stat-value" id="timer" role="timer" aria-live="off">02:00</span>
+            <div class="timer-bar" aria-hidden="true"><div class="timer-fill" id="timerFill"></div></div>
+          </div>
+          <div class="stat">
+            <span class="stat-label">내 점수</span>
+            <span class="stat-value" id="score">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">최고 점수</span>
+            <span class="stat-value" id="bestScore">0</span>
+          </div>
+        </div>
+        <button class="start-button" id="startButton" type="button">게임 시작하기</button>
+
+        <div class="how-to">
+          <h2>플레이 방법</h2>
+          <ol>
+            <li><span class="step">1</span><span>사과를 누른 채 이웃한 숫자로 드래그해요.</span></li>
+            <li><span class="step">2</span><span>합계가 10이면 손을 떼세요. 숫자가 클수록 점수도 올라가요!</span></li>
+            <li><span class="step">3</span><span>2분 동안 최대한 많은 사과를 모아보세요.</span></li>
+          </ol>
+        </div>
+        <p class="footer-note">최고 점수는 이 기기에 저장돼요.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const SIZE = 8;
+      const ROUND_SECONDS = 120;
+      const BEST_SCORE_KEY = "apple-number-game-best";
+      const boardElement = document.getElementById("board");
+      const boardWrap = document.getElementById("boardWrap");
+      const messageElement = document.getElementById("message");
+      const selectionTotalElement = document.getElementById("selectionTotal");
+      const timerElement = document.getElementById("timer");
+      const timerFillElement = document.getElementById("timerFill");
+      const scoreElement = document.getElementById("score");
+      const bestScoreElement = document.getElementById("bestScore");
+      const startButton = document.getElementById("startButton");
+
+      let cells = [];
+      let selected = [];
+      let score = 0;
+      let bestScore = Number(localStorage.getItem(BEST_SCORE_KEY)) || 0;
+      let playing = false;
+      let deadline = 0;
+      let timerInterval = null;
+      let pointerId = null;
+      let selectionInvalid = false;
+
+      bestScoreElement.textContent = bestScore.toLocaleString("ko-KR");
+
+      function makeBoard() {
+        cells = Array.from({ length: SIZE * SIZE }, () => Math.floor(Math.random() * 9) + 1);
+        boardElement.replaceChildren();
+
+        cells.forEach((value, index) => {
+          const cell = document.createElement("button");
+          cell.type = "button";
+          cell.className = "cell";
+          cell.dataset.index = String(index);
+          cell.setAttribute("role", "gridcell");
+          cell.setAttribute("aria-label", `${Math.floor(index / SIZE) + 1}행 ${index % SIZE + 1}열, 숫자 ${value}`);
+          cell.textContent = String(value);
+          boardElement.appendChild(cell);
+        });
+      }
+
+      function setMessage(text, kind) {
+        messageElement.textContent = text;
+        messageElement.className = `game-message${kind ? ` ${kind}` : ""}`;
+      }
+
+      function setLocked(locked) {
+        boardWrap.classList.toggle("locked", locked);
+        boardElement.setAttribute("aria-disabled", String(locked));
+      }
+
+      function currentTotal() {
+        return selected.reduce((total, index) => total + cells[index], 0);
+      }
+
+      function renderSelection() {
+        boardElement.querySelectorAll(".cell").forEach((cell) => {
+          cell.classList.toggle("selected", selected.includes(Number(cell.dataset.index)));
+        });
+        selectionTotalElement.textContent = `합계 ${currentTotal()}`;
+      }
+
+      function clearSelection() {
+        selected = [];
+        selectionInvalid = false;
+        renderSelection();
+      }
+
+      function updateTimer() {
+        const seconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+        const minutes = Math.floor(seconds / 60);
+        const remainder = seconds % 60;
+        timerElement.textContent = `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+        timerFillElement.style.width = `${(seconds / ROUND_SECONDS) * 100}%`;
+
+        if (seconds === 0) finishGame();
+      }
+
+      function finishGame() {
+        if (!playing) return;
+        playing = false;
+        window.clearInterval(timerInterval);
+        timerInterval = null;
+        pointerId = null;
+        clearSelection();
+        setLocked(true);
+        startButton.textContent = "다시 도전하기";
+        setMessage(`시간 종료! ${score.toLocaleString("ko-KR")}점으로 마무리했어요.`, "error");
+      }
+
+      function startGame() {
+        window.clearInterval(timerInterval);
+        score = 0;
+        scoreElement.textContent = "0";
+        makeBoard();
+        clearSelection();
+        playing = true;
+        deadline = Date.now() + ROUND_SECONDS * 1000;
+        startButton.textContent = "새 게임 시작";
+        setLocked(false);
+        setMessage("이웃한 숫자를 드래그해 합계 10을 만들어보세요!");
+        updateTimer();
+        timerInterval = window.setInterval(updateTimer, 200);
+      }
+
+      function cellAtPoint(x, y) {
+        const element = document.elementFromPoint(x, y);
+        const cell = element && element.closest(".cell");
+        return cell && boardElement.contains(cell) ? cell : null;
+      }
+
+      function isAdjacent(first, second) {
+        const rowDistance = Math.abs(Math.floor(first / SIZE) - Math.floor(second / SIZE));
+        const columnDistance = Math.abs((first % SIZE) - (second % SIZE));
+        return (rowDistance !== 0 || columnDistance !== 0) && rowDistance <= 1 && columnDistance <= 1;
+      }
+
+      function addToSelection(index) {
+        if (!playing || selectionInvalid || cells[index] === 0 || selected.includes(index)) return;
+        if (selected.length > 0 && !isAdjacent(selected[selected.length - 1], index)) return;
+
+        const nextTotal = currentTotal() + cells[index];
+        if (nextTotal > 10) {
+          selectionInvalid = true;
+          selected = [];
+          renderSelection();
+          setMessage("합계가 10을 넘었어요. 다시 이어서 선택해보세요.", "error");
+          return;
+        }
+
+        selected.push(index);
+        renderSelection();
+        setMessage(nextTotal === 10 ? "딱 10이에요! 손을 떼서 사과를 획득하세요." : "좋아요, 이웃한 숫자를 계속 이어보세요!");
+      }
+
+      boardElement.addEventListener("pointerdown", (event) => {
+        const cell = event.target.closest(".cell");
+        if (!playing || !cell || cells[Number(cell.dataset.index)] === 0 || !event.isPrimary) return;
+        event.preventDefault();
+        pointerId = event.pointerId;
+        selectionInvalid = false;
+        selected = [];
+        addToSelection(Number(cell.dataset.index));
+        boardElement.setPointerCapture(pointerId);
+      });
+
+      boardElement.addEventListener("pointermove", (event) => {
+        if (event.pointerId !== pointerId || !playing) return;
+        const cell = cellAtPoint(event.clientX, event.clientY);
+        if (cell) addToSelection(Number(cell.dataset.index));
+      });
+
+      boardElement.addEventListener("pointerup", (event) => {
+        if (event.pointerId !== pointerId) return;
+        pointerId = null;
+
+        if (playing && !selectionInvalid && selected.length > 0 && currentTotal() === 10) {
+          const clearedCount = selected.length;
+          selected.forEach((index) => {
+            cells[index] = 0;
+            const cell = boardElement.querySelector(`[data-index="${index}"]`);
+            cell.textContent = "";
+            cell.classList.add("empty");
+            cell.setAttribute("aria-label", `${Math.floor(index / SIZE) + 1}행 ${index % SIZE + 1}열, 비어 있음`);
+          });
+          score += clearedCount * 10;
+          scoreElement.textContent = score.toLocaleString("ko-KR");
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestScoreElement.textContent = bestScore.toLocaleString("ko-KR");
+            localStorage.setItem(BEST_SCORE_KEY, String(bestScore));
+          }
+
+          clearSelection();
+          setMessage(`성공! 사과 ${clearedCount}개를 얻어 ${clearedCount * 10}점을 획득했어요.`, "success");
+
+          if (cells.every((value) => value === 0)) {
+            setMessage("격자를 모두 비웠어요! 완벽한 수확이에요 🍎", "success");
+            finishGame();
+          }
+          return;
+        }
+
+        const wasInvalid = selectionInvalid;
+        clearSelection();
+        if (playing && !wasInvalid) setMessage("합계가 10이 아니에요. 다시 도전해보세요.");
+      });
+
+      boardElement.addEventListener("pointercancel", () => {
+        pointerId = null;
+        clearSelection();
+      });
+
+      startButton.addEventListener("click", startGame);
+      makeBoard();
+    })();
+  </script>
+</body>
+</html>
